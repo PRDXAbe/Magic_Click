@@ -3,6 +3,7 @@ Face Embedding Database
 FastAPI application entry point.
 """
 import uvicorn
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -10,13 +11,26 @@ from fastapi.responses import FileResponse, Response
 
 from app.api.routes import api
 from app.config import HOST, PORT, DEBUG, BASE_DIR
+from app.core.camera_service import camera_service_instance
+from app.core.job_worker_service import job_worker_instance
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    camera_service_instance.start()
+    job_worker_instance.start()
+    yield
+    # Shutdown
+    camera_service_instance.stop()
+    job_worker_instance.stop()
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     app = FastAPI(
-        title="Face Embedding Database",
-        version="2.0.0",
-        description="FastAPI service for face embeddings and search"
+        title="UltronVision Backend",
+        version="3.0.0",
+        description="FastAPI service for UltronVision (Face embeddings, search, live cameras, pipelines)",
+        lifespan=lifespan
     )
     
     # Enable CORS
@@ -43,7 +57,13 @@ def create_app() -> FastAPI:
 
     @app.get("/camera")
     async def serve_camera():
+        # Keep original single camera page
         return FileResponse(f"{BASE_DIR}/templates/camera.html", headers=NO_CACHE)
+    
+    @app.get("/cameras")
+    async def serve_cameras():
+        # New multi-camera view
+        return FileResponse(f"{BASE_DIR}/templates/cameras.html", headers=NO_CACHE)
     
     @app.get("/upload")
     async def serve_upload():
@@ -71,7 +91,7 @@ def create_app() -> FastAPI:
 app = create_app()
 
 if __name__ == '__main__':
-    print(f"\n🚀 Starting Face Embedding Database API (FastAPI)...")
+    print(f"\n🚀 Starting UltronVision Backend (FastAPI)...")
     print(f"📍 Running on http://{HOST}:{PORT}")
     print(f"📚 API docs at http://localhost:{PORT}/docs\n")
     uvicorn.run("run:app", host=HOST, port=PORT, reload=DEBUG)

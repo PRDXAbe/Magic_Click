@@ -1,0 +1,9 @@
+[
+    {
+        "id": "cam_b791da04",
+        "type": "wired",
+        "source": "0",
+        "label": "Built-in Webcam",
+        "enabled": true
+    }
+]
